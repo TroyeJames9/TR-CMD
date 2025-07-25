@@ -126,7 +126,13 @@ def isAdmin(bot, update):
 
 
 def main():
-    updater = Updater(config["SecretConfig"]["Token"])
+    request_kwargs = {
+        'proxy_url': 'http://127.0.0.1:7890/',  # 替换为你的 mihomo 代理地址（如 socks5://127.0.0.1:7891）
+    }
+    updater = Updater(
+        token=config["SecretConfig"]["Token"],
+        request_kwargs=request_kwargs  # 新增代理配置
+    )
     dp = updater.dispatcher
 
     dp.add_handler(CommandHandler("start", startCMD))
