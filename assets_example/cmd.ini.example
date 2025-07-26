@@ -1,0 +1,4 @@
+[Commands]
+reboot = sudo reboot
+shutdown = sudo shutdown -h now
+syncblog = sync_blog
