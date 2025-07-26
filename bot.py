@@ -4,6 +4,7 @@
 Created on Wed Apr  4 19:06:08 2018
 
 @author: mparvin
+@contributor: troyejames9
 """
 
 import subprocess
@@ -151,13 +152,12 @@ def main():
     dp = updater.dispatcher
 
     dp.add_handler(CommandHandler("start", startCMD))
-    dp.add_handler(CommandHandler("top", topCMD))
-    dp.add_handler(CommandHandler("htop", HTopCMD))
     dp.add_handler(CommandHandler("help", helpCMD))
-
     for key in CMD_DICT.keys():
         dp.add_handler(CommandHandler(key, runCMD))
 
+    dp.add_handler(CommandHandler("top", topCMD))
+    dp.add_handler(CommandHandler("htop", HTopCMD))
     # dp.add_handler(MessageHandler(Filters.text, runCMD))
 
     dp.add_error_handler(error)

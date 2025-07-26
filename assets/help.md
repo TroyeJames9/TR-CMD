@@ -3,12 +3,12 @@
 此机器人可以在 tflow 服务器上远程执行指定命令或提供所需服务
 
 *⚙️ 系统命令*
-`/start` - 开始使用机器人  
-`/reboot` - 重启服务器  
-`/shutdown` - 安全关机  
+/start - 开始使用机器人  
+/reboot - 重启服务器  
+/shutdown - 安全关机  
 
 *🛠️ 实用功能*
-`/syncblog` - 更新 quartz 笔记并构建
+/syncblog - 更新 quartz 笔记并构建
 
 *⚠️ 注意事项*
 1. 所有命令需要管理员权限
