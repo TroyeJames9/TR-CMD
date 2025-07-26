@@ -7,15 +7,17 @@ Created on Wed Apr  4 19:06:08 2018
 @contributor: troyejames9
 """
 
-import subprocess
 import configparser
+import logging
 import os
-# noinspection PyPackageRequirements
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+import subprocess
+from functools import wraps
+from pathlib import Path
+
 # noinspection PyPackageRequirements
 from telegram import ParseMode
-import logging
-from pathlib import Path
+# noinspection PyPackageRequirements
+from telegram.ext import Updater, CommandHandler
 
 
 def load_ini(filename, dictname):
@@ -31,13 +33,31 @@ CMD_DICT = load_ini("cmd.ini", "Commands")
 # For more security replies only send to admin chat_id
 ADMINCID = CONFIG["admincid"]
 
-
 # Enable logging
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 
 LOGGING = logging.getLogger(__name__)
+
+
+def admin_required(func):
+    @wraps(func)
+    def wrapper(bot, update, *args, **kwargs):
+        chat_id = str(update.message.chat_id)
+        if chat_id == ADMINCID:
+            return func(bot, update, *args, **kwargs)
+        else:
+            update.message.reply_text(
+                "该指令需管理员权限才能执行"
+            )
+            alertMessage = (
+                "Some one try to use this bot with this information:\n chat_id is {} and username is {}".format(
+                    chat_id, update.message.from_user.username
+                ))
+            bot.sendMessage(text=alertMessage, chat_id=ADMINCID)
+
+    return wrapper
 
 
 def executeCommand(command: str, bot):
@@ -56,27 +76,23 @@ def executeCommand(command: str, bot):
 
 
 # This function run command and send output to user
+@admin_required
 def runCMD(bot, update):
-    if not isAdmin(bot, update):
-        return
     commandname = update.message.text[1:]  # 去掉实际指令开头的斜杠
     usercommand = CMD_DICT[commandname]
     executeCommand(usercommand, bot)
 
 
-def startCMD(bot, update):
-    if not isAdmin(bot, update):
-        return
+@admin_required
+def startCMD(bot):
     bot.sendMessage(
         text="这里是tflowbot，你的服务器的私人助手, 请执行/help以浏览我所能提供的服务",
         chat_id=ADMINCID,
     )
 
 
-def helpCMD(bot, update):
-    if not isAdmin(bot, update):
-        return
-
+@admin_required
+def helpCMD(bot):
     # 获取脚本所在目录的绝对路径
     script_dir = os.path.dirname(os.path.abspath(__file__))
     help_file = os.path.join(script_dir, "assets", "help.md")
@@ -87,18 +103,15 @@ def helpCMD(bot, update):
     bot.sendMessage(text=help_text, chat_id=ADMINCID, parse_mode=ParseMode.MARKDOWN)
 
 
-def topCMD(bot, update):
-    if not isAdmin(bot, update):
-        return
+@admin_required
+def topCMD(bot):
     cmdOut = str(subprocess.check_output("top -n 1", shell=True), "utf-8")
     bot.sendMessage(text=cmdOut, chat_id=ADMINCID)
     bot.sendMessage(text=cmdOut, chat_id=ADMINCID)
 
 
-def HTopCMD(bot, update):
-    # Is this user admin?
-    if not isAdmin(bot, update):
-        return
+@admin_required
+def HTopCMD(bot):
     # Checking requirements on your system
     htopCheck = subprocess.call(["which", "htop"])
     if htopCheck != 0:
@@ -121,24 +134,9 @@ def HTopCMD(bot, update):
         os.remove("./htop-output.html")
 
 
-def error(update, error):
+def error(update, err):
     """Log Errors caused by Updates."""
-    LOGGING.warning('Update "%s" caused error "%s"', update, error)
-
-
-def isAdmin(bot, update):
-    chat_id = update.message.chat_id
-    if str(chat_id) == ADMINCID:
-        return True
-
-    update.message.reply_text(
-        "You cannot use this bot, because you are not Admin!!!!"
-    )
-    alertMessage = """Some one try to use this bot with this information:\n chat_id is {} and username is {} """.format(
-        update.message.chat_id, update.message.from_user.username
-    )
-    bot.sendMessage(text=alertMessage, chat_id=ADMINCID)
-    return False
+    LOGGING.warning('Update "%s" caused error "%s"', update, err)
 
 
 def main():
@@ -158,7 +156,6 @@ def main():
 
     dp.add_handler(CommandHandler("top", topCMD))
     dp.add_handler(CommandHandler("htop", HTopCMD))
-    # dp.add_handler(MessageHandler(Filters.text, runCMD))
 
     dp.add_error_handler(error)
     updater.start_polling()
