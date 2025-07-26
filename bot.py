@@ -51,11 +51,11 @@ def admin_required(func):
             update.message.reply_text(
                 "该指令需管理员权限才能执行"
             )
-            alertMessage = (
-                "Some one try to use this bot with this information:\n chat_id is {} and username is {}".format(
-                    chat_id, update.message.from_user.username
-                ))
-            bot.sendMessage(text=alertMessage, chat_id=ADMINCID)
+            # alertMessage = (
+            #     "Some one try to use this bot with this information:\n chat_id is {} and username is {}".format(
+            #         chat_id, update.message.chat.username
+            #     ))
+            # bot.sendMessage(text=alertMessage, chat_id=ADMINCID)
 
     return wrapper
 
@@ -83,16 +83,14 @@ def runCMD(bot, update):
     executeCommand(usercommand, bot)
 
 
-@admin_required
-def startCMD(bot):
+def startCMD(bot, update):
     bot.sendMessage(
         text="这里是tflowbot，你的服务器的私人助手, 请执行/help以浏览我所能提供的服务",
-        chat_id=ADMINCID,
+        chat_id=update.message.chat_id,
     )
 
 
-@admin_required
-def helpCMD(bot):
+def helpCMD(bot, update):
     # 获取脚本所在目录的绝对路径
     script_dir = os.path.dirname(os.path.abspath(__file__))
     help_file = os.path.join(script_dir, "assets", "help.md")
@@ -100,7 +98,7 @@ def helpCMD(bot):
     with open(help_file, "r", encoding="utf-8") as file:
         help_text = file.read()
 
-    bot.sendMessage(text=help_text, chat_id=ADMINCID, parse_mode=ParseMode.MARKDOWN)
+    bot.sendMessage(text=help_text, chat_id=update.message.chat_id, parse_mode=ParseMode.MARKDOWN)
 
 
 @admin_required
@@ -111,7 +109,7 @@ def topCMD(bot):
 
 
 @admin_required
-def HTopCMD(bot):
+def HTopCMD(bot, update):
     # Checking requirements on your system
     htopCheck = subprocess.call(["which", "htop"])
     if htopCheck != 0:
@@ -134,9 +132,17 @@ def HTopCMD(bot):
         os.remove("./htop-output.html")
 
 
-def error(update, err):
-    """Log Errors caused by Updates."""
-    LOGGING.warning('Update "%s" caused error "%s"', update, err)
+def error_callback(bot, update, err):
+    LOGGING.error(f'Update: {update} \nError: {err}')
+
+    # 向管理员报告错误
+    if update:
+        error_msg = (
+            f"⚠️ Bot Error:\n"
+            f"Update: {update}\n\n"
+            f"Error: {str(err)}"
+        )
+        bot.sendMessage(text=error_msg, chat_id=ADMINCID)
 
 
 def main():
@@ -157,7 +163,7 @@ def main():
     dp.add_handler(CommandHandler("top", topCMD))
     dp.add_handler(CommandHandler("htop", HTopCMD))
 
-    dp.add_error_handler(error)
+    dp.add_error_handler(error_callback)
     updater.start_polling()
     updater.idle()
 
